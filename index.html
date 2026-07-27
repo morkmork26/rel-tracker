@@ -97,7 +97,7 @@ th.ns:hover{color:#8b949e}
 td{padding:8px 12px;border-top:1px solid #21262d;transition:all .3s}
 tr:hover td{background:#161b2288}
 tr.overdue-row td{background:#f8514911}
-.editable{cursor:text;min-width:30px;border-radius:4px;padding:2px 4px;transition:background .2s;display:inline-block}
+.editable{cursor:text;min-width:30px;border-radius:4px;padding:2px 4px;transition:background .2s;display:inline-block;white-space:pre-wrap}
 .editable:hover{background:#58a6ff11}
 .editable:focus{outline:none;background:#58a6ff22;box-shadow:0 0 0 1px #58a6ff}
 .status-badge{padding:3px 8px;border-radius:12px;font-size:.7rem;font-weight:600;display:inline-block;white-space:nowrap}
@@ -305,10 +305,253 @@ tr.overdue-row td{background:#f8514911}
 <div class="shortcut-help" id="shortcutHelp"><b>Shortcuts</b><br><kbd>Ctrl+Z</kbd> Undo<br><kbd>Ctrl+Y</kbd> Redo<br><kbd>Ctrl+N</kbd> Add Row<br><kbd>Ctrl+P</kbd> Print<br><kbd>Ctrl+B</kbd> Backup<br><kbd>Esc</kbd> Close modal</div>
 <button class="btn" id="shortcutBtn" style="position:fixed;bottom:12px;right:12px;padding:4px 8px;font-size:.75rem;opacity:.5">?</button>
 <script>
-var EMBEDDED_ITEMS=[{"id": 1784979716, "product": "QP34", "qual": "FICDM", "lot": "", "readpoint": "TF", "temp": "", "stressHrs": "", "unitsIn": 21, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}, {"id": 1784979717, "product": "QP34", "qual": "HBM", "lot": "", "readpoint": "TF", "temp": "", "stressHrs": "", "unitsIn": 33, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}, {"id": 1784979718, "product": "QP34", "qual": "LATCH UP", "lot": "", "readpoint": "TF", "temp": "", "stressHrs": "", "unitsIn": 12, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}, {"id": 1784979719, "product": "QP34", "qual": "ELF", "lot": "", "readpoint": "T0", "temp": "Room", "stressHrs": "0", "unitsIn": 82, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}, {"id": 1784979720, "product": "QP34", "qual": "ELF", "lot": "", "readpoint": "TF", "temp": "Room", "stressHrs": "48", "unitsIn": 82, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}, {"id": 1784979721, "product": "QP34", "qual": "HTOL", "lot": "", "readpoint": "T0", "temp": "Room", "stressHrs": "0", "unitsIn": 82, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}, {"id": 1784979722, "product": "QP34", "qual": "HTOL", "lot": "", "readpoint": "TF", "temp": "Room", "stressHrs": "1000", "unitsIn": 82, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}, {"id": 1784979723, "product": "QP34", "qual": "HAST", "lot": "", "readpoint": "T0", "temp": "Room", "stressHrs": "0", "unitsIn": 82, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}, {"id": 1784979724, "product": "QP34", "qual": "HAST", "lot": "", "readpoint": "TF", "temp": "Room", "stressHrs": "264", "unitsIn": 82, "unitsOut": null, "fails": null, "failType": "", "targetDate": "", "actualDate": "", "notes": "", "datalogLink": "", "overdueReason": "", "parentLot": "", "splitFrom": "", "customFields": {}}];
+
+// One-time cleanup of corrupted localStorage from bad sync
+(function(){
+  var pk = localStorage.getItem("rel_tracker_products_v3");
+  if (pk && pk.charAt(0) !== "[") { localStorage.removeItem("rel_tracker_products_v3"); }
+  var ck = localStorage.getItem("rel_tracker_columns_v3");
+  if (ck && ck.charAt(0) !== "[") { localStorage.removeItem("rel_tracker_columns_v3"); }
+  var sk = localStorage.getItem("rel_tracker_v3");
+  if (sk && sk.charAt(0) !== "[") { localStorage.removeItem("rel_tracker_v3"); }
+  var fk = localStorage.getItem("rel_tracker_fa_v3");
+  if (fk && fk.charAt(0) !== "[") { localStorage.removeItem("rel_tracker_fa_v3"); }
+  var plk = localStorage.getItem("rel_tracker_plans_v3");
+  if (plk && plk.charAt(0) !== "{") { localStorage.removeItem("rel_tracker_plans_v3"); }
+})();
+
+var EMBEDDED_ITEMS=[
+  {
+    "id": 1784979716,
+    "product": "QP34",
+    "qual": "FICDM",
+    "lot": "",
+    "readpoint": "TF",
+    "temp": "",
+    "stressHrs": "",
+    "unitsIn": 21,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1784979717,
+    "product": "QP34",
+    "qual": "HBM",
+    "lot": "",
+    "readpoint": "TF",
+    "temp": "",
+    "stressHrs": "",
+    "unitsIn": 33,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1784979718,
+    "product": "QP34",
+    "qual": "LATCH UP",
+    "lot": "",
+    "readpoint": "TF",
+    "temp": "",
+    "stressHrs": "",
+    "unitsIn": 12,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1784979719,
+    "product": "QP34",
+    "qual": "ELF",
+    "lot": "",
+    "readpoint": "T0",
+    "temp": "Room",
+    "stressHrs": "0",
+    "unitsIn": 82,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1784979720,
+    "product": "QP34",
+    "qual": "ELF",
+    "lot": "",
+    "readpoint": "TF",
+    "temp": "Room",
+    "stressHrs": "48",
+    "unitsIn": 82,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1784979721,
+    "product": "QP34",
+    "qual": "HTOL",
+    "lot": "",
+    "readpoint": "T0",
+    "temp": "Room",
+    "stressHrs": "0",
+    "unitsIn": 82,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1784979722,
+    "product": "QP34",
+    "qual": "HTOL",
+    "lot": "",
+    "readpoint": "TF",
+    "temp": "Room",
+    "stressHrs": "1000",
+    "unitsIn": 82,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1784979723,
+    "product": "QP34",
+    "qual": "HAST",
+    "lot": "",
+    "readpoint": "T0",
+    "temp": "Room",
+    "stressHrs": "0",
+    "unitsIn": 82,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1784979724,
+    "product": "QP34",
+    "qual": "HAST",
+    "lot": "",
+    "readpoint": "TF",
+    "temp": "Room",
+    "stressHrs": "264",
+    "unitsIn": 82,
+    "unitsOut": null,
+    "fails": null,
+    "failType": "",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "parentLot": "",
+    "splitFrom": "",
+    "customFields": {}
+  },
+  {
+    "id": 1785400000,
+    "product": "LT8460",
+    "qual": "TCT RESAMPLING",
+    "lot": "BA54599.29",
+    "readpoint": "T0",
+    "temp": "Room",
+    "stressHrs": "Precon",
+    "unitsIn": 82,
+    "unitsOut": 58,
+    "fails": 24,
+    "failType": "4.5V Feedback Regulation_CH7 (20x), CHECK_VOUT_CH7: PRE EA, 600mV,SERVO OFF (4x)",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "customFields": {}
+  },
+  {
+    "id": 1785400001,
+    "product": "LT8460",
+    "qual": "UHAST RESAMPLING",
+    "lot": "BA54599.28",
+    "readpoint": "T0",
+    "temp": "Room",
+    "stressHrs": "Precon",
+    "unitsIn": 82,
+    "unitsOut": 64,
+    "fails": 18,
+    "failType": "4.5V Feedback Regulation_CH7 (12x), CHECK_VOUT_CH7: PRE EA, 600mV,SERVO OFF (5x), CHECK_IMON_ADC_GAIN_CH1_BEST_VALUE (1x)",
+    "targetDate": "",
+    "actualDate": "",
+    "notes": "",
+    "datalogLink": "",
+    "overdueReason": "",
+    "customFields": {}
+  }
+];
 var EMBEDDED_FA=[];
 var EMBEDDED_PLANS={"QP34": [{"id": 1784979816, "qual": "FICDM", "lots": 1, "samples": 21, "temps": [], "readpoints": ["TF"], "stressHrs": [""], "totalDuration": "1 cycle", "condition": "All Pins, 1 Zap per Polarity", "spec": "JS-002", "generated": true}, {"id": 1784979817, "qual": "HBM", "lots": 1, "samples": 33, "temps": [], "readpoints": ["TF"], "stressHrs": [""], "totalDuration": "1 cycle", "condition": "Std. Sample, 1 Zap per Polarity", "spec": "JS-001", "generated": true}, {"id": 1784979818, "qual": "LATCH UP", "lots": 1, "samples": 12, "temps": [], "readpoints": ["TF"], "stressHrs": [""], "totalDuration": "1 cycle", "condition": "+125C, Biased", "spec": "JESD78", "generated": true}, {"id": 1784979819, "qual": "ELF", "lots": 1, "samples": 82, "temps": ["Room"], "readpoints": ["T0", "TF"], "stressHrs": ["0", "48"], "totalDuration": "48 hrs", "condition": "Tj=+125C, Biased", "spec": "", "generated": true}, {"id": 1784979820, "qual": "HTOL", "lots": 1, "samples": 82, "temps": ["Room"], "readpoints": ["T0", "TF"], "stressHrs": ["0", "1000"], "totalDuration": "1000 hrs", "condition": "Tj=125C, Biased", "spec": "JESD22-A108", "generated": true}, {"id": 1784979821, "qual": "HAST", "lots": 1, "samples": 82, "temps": ["Room"], "readpoints": ["T0", "TF"], "stressHrs": ["0", "264"], "totalDuration": "264 hrs", "condition": "110C 85%RH 17.7psia, Biased", "spec": "JESD22-A110", "generated": true}], "QP34_qp": ""};
-var EMBEDDED_VERSION=1784979715;
+var EMBEDDED_VERSION=1785147788674;
 var DEFAULT_PRODUCTS=["QP34","LT7171","LT8460","QP15","LT3013"];
 var DEFAULT_COLUMNS=[{"key":"qual","label":"Qual","visible":true,"builtin":true},{"key":"lot","label":"Lot","visible":true,"builtin":true},{"key":"temp","label":"Temp","visible":true,"builtin":true},{"key":"stressHrs","label":"Hrs","visible":true,"builtin":true},{"key":"unitsIn","label":"In","visible":true,"builtin":true},{"key":"unitsOut","label":"Out","visible":true,"builtin":true},{"key":"fails","label":"Fails","visible":true,"builtin":true},{"key":"failType","label":"Fail Type","visible":true,"builtin":true},{"key":"fa","label":"FA","visible":true,"builtin":true},{"key":"status","label":"Status","visible":true,"builtin":true},{"key":"targetDate","label":"Target","visible":true,"builtin":true},{"key":"actualDate","label":"Actual","visible":true,"builtin":true},{"key":"notes","label":"Notes","visible":true,"builtin":true},{"key":"datalogLink","label":"DL","visible":true,"builtin":true}];
 var SK="rel_tracker_v3",PK="rel_tracker_products_v3",FK="rel_tracker_fa_v3",CK="rel_tracker_columns_v3",TK="rel_tracker_theme",PLAN_KEY="rel_tracker_plans_v3";
@@ -841,7 +1084,7 @@ document.getElementById("tbody").addEventListener("click",function(e){var gh=e.t
 document.addEventListener("click",function(e){if(!e.target.closest(".dl-input-wrap")&&!e.target.closest(".dl-icon"))document.querySelectorAll(".dl-input-wrap.open").forEach(function(w){w.classList.remove("open")})});
 document.addEventListener("keydown",function(e){
   if(e.target&&e.target.classList.contains("dl-input")&&e.key==="Enter")e.target.blur();
-  if(e.target&&e.target.classList.contains("editable")&&e.key==="Enter"){e.preventDefault();e.target.blur()}
+  if(e.target&&e.target.classList.contains("editable")&&e.key==="Enter"){if(e.altKey){e.preventDefault();document.execCommand("insertLineBreak")}else{e.preventDefault();e.target.blur()}}
 });
 
 // Keyboard shortcuts
@@ -905,17 +1148,17 @@ function loadFromCloud() {
       }
       if (d.plans && Object.keys(d.plans).length > 0) {
         plans = d.plans;
-        localStorage.setItem(PK, JSON.stringify(plans));
+        localStorage.setItem(PLAN_KEY, JSON.stringify(plans));
         changed = true;
       }
       // Only use cloud products/columns if valid strings
       if (d.products && d.products.length > 0 && typeof d.products[0] === "string") {
         products = d.products;
-        localStorage.setItem(PROD_K, JSON.stringify(products));
+        localStorage.setItem(PK, JSON.stringify(products));
       }
       if (d.columns && d.columns.length > 0 && typeof d.columns[0] === "object" && d.columns[0].key) {
         columns = d.columns;
-        localStorage.setItem(COL_K, JSON.stringify(columns));
+        localStorage.setItem(CK, JSON.stringify(columns));
       }
       if (changed) { renderHeader(); render(); }
       console.log("Loaded from cloud");
