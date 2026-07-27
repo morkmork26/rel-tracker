@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#58a6ff">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Rel Tracker</title>
@@ -39,7 +39,7 @@ body.light .plan-table th{background:#f6f8fa}
 body.light .plan-add-form{background:#f6f8fa;border-color:#d0d7de}
 input[type="date"]{color-scheme:dark}
 body.light input[type="date"]{color-scheme:light}
-.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;align-items:start}
+.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;align-items:start;min-height:160px}
 .toolbar{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#161b22;border:1px solid #30363d;border-radius:10px}
 .search-input{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;padding:7px 12px;border-radius:6px;font-size:.8rem;width:200px;transition:border-color .2s,width .3s}
 .search-input:focus{outline:none;border-color:#58a6ff;width:280px}
@@ -54,7 +54,7 @@ h1{font-size:1.8rem;font-weight:700;background:linear-gradient(135deg,#3fb950,#5
 .card.inprog .card-value{color:#58a6ff}
 .card.overdue .card-value{color:#f85149}
 .card.fails .card-value{color:#d29922}
-.qual-progress{margin-bottom:0}
+.qual-progress{margin-bottom:0;max-height:140px;overflow-y:auto}
 .qual-progress-item{display:flex;align-items:center;gap:12px;margin-bottom:8px}
 .qual-progress-label{font-size:.8rem;color:#8b949e;min-width:80px;font-weight:600}
 .progress-bar-bg{flex:1;height:8px;background:#21262d;border-radius:4px;overflow:hidden;max-width:300px}
@@ -249,7 +249,7 @@ tr.overdue-row td{background:#f8514911}
   <button class="btn" id="collapseAll" style="display:none">↕</button>
   <button class="btn" id="colSettingsBtn" title="Columns">⚙</button>
   <button class="btn btn-export" id="exportBtn" title="Export Excel">💾</button>
-  <button class="btn" id="backupBtn" title="Download backup (HTML with data)" style="border-color:#3fb950;color:#3fb950">📥</button>
+  <button class="btn" id="syncBtn" style="border-color:#3fb950;color:#3fb950" title="Sync to Google Sheets">&#9729;</button> <button class="btn" id="backupBtn" title="Download backup (HTML with data)" style="border-color:#3fb950;color:#3fb950">📥</button>
   <button class="btn" id="printBtn" title="Print">🖨</button>
 </div>
 <div class="add-form" id="addForm">
@@ -855,6 +855,91 @@ document.addEventListener("keydown",function(e){
 });
 document.getElementById("shortcutBtn").addEventListener("mouseenter",function(){document.getElementById("shortcutHelp").classList.add("open")});
 document.getElementById("shortcutBtn").addEventListener("mouseleave",function(){document.getElementById("shortcutHelp").classList.remove("open")});
+
+
+// === Google Sheets Sync ===
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJ8wrYPiJYVxD15I_XX0b_tMHUUe4iMIA3eAdgLv5Q9lGqyOc1TKYPx78VvYKAZ900SA/exec";
+var syncInProgress = false;
+
+function fixDate(d) {
+  if (!d) return "";
+  if (typeof d === "string" && d.indexOf("T") > -1) return d.split("T")[0];
+  return String(d);
+}
+
+function syncToCloud() {
+  if (syncInProgress) return;
+  syncInProgress = true;
+  var btn = document.getElementById("syncBtn");
+  if (btn) btn.textContent = "...";
+  var payload = {action: "save", app: "rel", data: {items: items, fa: faEntries, plans: plans, products: products, columns: columns}};
+  fetch(SCRIPT_URL, {method: "POST", body: JSON.stringify(payload), headers: {"Content-Type": "text/plain"}})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { syncInProgress = false; if (btn) btn.textContent = "☁"; console.log("Synced to cloud:", d.timestamp); })
+    .catch(function(e) { syncInProgress = false; if (btn) btn.textContent = "☁"; console.warn("Sync failed:", e); });
+}
+
+function loadFromCloud() {
+  fetch(SCRIPT_URL + "?action=load&app=rel")
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var changed = false;
+      if (d.items && d.items.length > 0) {
+        d.items.forEach(function(item) {
+          if (item.targetDate) item.targetDate = fixDate(item.targetDate);
+          if (item.actualDate) item.actualDate = fixDate(item.actualDate);
+        });
+        var cloudIds = d.items.map(function(i) { return i.id; });
+        var localOnly = items.filter(function(i) { return cloudIds.indexOf(i.id) === -1; });
+        items = d.items.concat(localOnly);
+        localStorage.setItem(SK, JSON.stringify(items));
+        changed = true;
+      }
+      if (d.fa && d.fa.length > 0) {
+        d.fa.forEach(function(f) { if (f.date) f.date = fixDate(f.date); });
+        var cloudFIds = d.fa.map(function(f) { return f.id; });
+        var localOnlyF = faEntries.filter(function(f) { return cloudFIds.indexOf(f.id) === -1; });
+        faEntries = d.fa.concat(localOnlyF);
+        localStorage.setItem(FK, JSON.stringify(faEntries));
+        changed = true;
+      }
+      if (d.plans && Object.keys(d.plans).length > 0) {
+        plans = d.plans;
+        localStorage.setItem(PK, JSON.stringify(plans));
+        changed = true;
+      }
+      // Only use cloud products/columns if valid strings
+      if (d.products && d.products.length > 0 && typeof d.products[0] === "string") {
+        products = d.products;
+        localStorage.setItem(PROD_K, JSON.stringify(products));
+      }
+      if (d.columns && d.columns.length > 0 && typeof d.columns[0] === "object" && d.columns[0].key) {
+        columns = d.columns;
+        localStorage.setItem(COL_K, JSON.stringify(columns));
+      }
+      if (changed) { renderHeader(); render(); }
+      console.log("Loaded from cloud");
+    })
+    .catch(function(e) { console.warn("Cloud load failed, using local:", e); });
+}
+
+// Wrap save functions
+var _origSaveItems = saveItems;
+saveItems = function() { _origSaveItems(); syncToCloud(); };
+var _origSaveFA = saveFA;
+saveFA = function() { _origSaveFA(); syncToCloud(); };
+var _origSavePlans = savePlans;
+savePlans = function() { _origSavePlans(); syncToCloud(); };
+var _origSaveProducts = saveProducts;
+saveProducts = function() { _origSaveProducts(); syncToCloud(); };
+var _origSaveColumns = saveColumns;
+saveColumns = function() { _origSaveColumns(); syncToCloud(); };
+
+// Sync button click
+document.getElementById("syncBtn").addEventListener("click", function() { syncToCloud(); });
+
+// Load from cloud on startup
+loadFromCloud();
 
 render();
 </script>
