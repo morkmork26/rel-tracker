@@ -859,5 +859,71 @@ document.getElementById("shortcutBtn").addEventListener("mouseleave",function(){
 render();
 </script>
 
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}</script>
+<script>
+// === Google Sheets Sync ===
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJ8wrYPiJYVxD15I_XX0b_tMHUUe4iMIA3eAdgLv5Q9lGqyOc1TKYPx78VvYKAZ900SA/exec";
+var syncInProgress = false;
+
+function syncToCloud() {
+  if (syncInProgress) return;
+  syncInProgress = true;
+  var payload = {action: "save", app: "rel", data: {items: items, fa: faEntries, plans: plans, products: products, columns: columns}};
+  fetch(SCRIPT_URL, {method: "POST", body: JSON.stringify(payload), headers: {"Content-Type": "text/plain"}})
+    .then(function(r) { return r.json(); })
+    .then(function(d) { syncInProgress = false; console.log("Synced to cloud:", d.timestamp); })
+    .catch(function(e) { syncInProgress = false; console.warn("Sync failed:", e); });
+}
+
+function loadFromCloud() {
+  fetch(SCRIPT_URL + "?action=load&app=rel")
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.items && d.items.length > 0) {
+        var cloudIds = d.items.map(function(i) { return i.id; });
+        var localOnly = items.filter(function(i) { return cloudIds.indexOf(i.id) === -1; });
+        items = d.items.concat(localOnly);
+        saveItemsLocal();
+      }
+      if (d.fa && d.fa.length > 0) {
+        var cloudFIds = d.fa.map(function(f) { return f.id; });
+        var localOnlyF = faEntries.filter(function(f) { return cloudFIds.indexOf(f.id) === -1; });
+        faEntries = d.fa.concat(localOnlyF);
+        saveFALocal();
+      }
+      if (d.plans && Object.keys(d.plans).length > 0) {
+        plans = d.plans;
+        savePlansLocal();
+      }
+      if (d.products && d.products.length > 0) {
+        products = d.products;
+        saveProductsLocal();
+      }
+      if (d.columns && d.columns.length > 0) {
+        columns = d.columns;
+        saveColumnsLocal();
+      }
+      renderHeader(); render();
+      console.log("Loaded from cloud");
+    })
+    .catch(function(e) { console.warn("Cloud load failed, using local:", e); });
+}
+
+// Rename originals to Local versions
+var saveItemsLocal = saveItems;
+var saveFALocal = saveFA;
+var savePlansLocal = savePlans;
+var saveProductsLocal = saveProducts;
+var saveColumnsLocal = saveColumns;
+
+// Override to also sync to cloud
+saveItems = function() { saveItemsLocal(); syncToCloud(); };
+saveFA = function() { saveFALocal(); syncToCloud(); };
+savePlans = function() { savePlansLocal(); syncToCloud(); };
+saveProducts = function() { saveProductsLocal(); syncToCloud(); };
+saveColumns = function() { saveColumnsLocal(); syncToCloud(); };
+
+// Load from cloud on startup
+loadFromCloud();
+
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}</script>
 </body></html>
