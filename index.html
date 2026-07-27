@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Rel Tracker</title>a
+<title>Rel Tracker</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.mini.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -640,12 +640,7 @@ function printView(){
     var v=i[c.key];return"<td>"+(v!==null&&v!==undefined?v:"")+"</td>";
   }).join("")+"</tr>"}).join("");
   var title="Rel Tracker"+(currentFilter!=="all"?" - "+currentFilter:"");
-  w.document.write("<html><head><link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#58a6ff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="icon-192.png">
-<title>"+title+"</title><style>body{font-family:sans-serif;padding:24px}h1{font-size:1.4rem}table{border-collapse:collapse;width:100%;font-size:.8rem;margin-top:16px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#f0f0f0}</style></head><body><h1>"+title+"</h1><p>Generated: "+new Date().toLocaleString()+"</p><table><thead><tr>"+th+"</tr></thead><tbody>"+trs+"</tbody></table></body></html>");
+  w.document.write("<html><head><title>"+title+"</title><style>body{font-family:sans-serif;padding:24px}h1{font-size:1.4rem}table{border-collapse:collapse;width:100%;font-size:.8rem;margin-top:16px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#f0f0f0}</style></head><body><h1>"+title+"</h1><p>Generated: "+new Date().toLocaleString()+"</p><table><thead><tr>"+th+"</tr></thead><tbody>"+trs+"</tbody></table></body></html>");
   w.document.close();
 }
 
@@ -862,8 +857,7 @@ document.getElementById("shortcutBtn").addEventListener("mouseenter",function(){
 document.getElementById("shortcutBtn").addEventListener("mouseleave",function(){document.getElementById("shortcutHelp").classList.remove("open")});
 
 render();
-
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
 </script>
 
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}</script>
 </body></html>
