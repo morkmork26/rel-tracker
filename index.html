@@ -15,6 +15,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d
 body.light{background:#f6f8fa;color:#1f2328}
 body.light .card{background:linear-gradient(135deg,#fff,#f6f8fa);border-color:#d0d7de}
 body.light .card-label{color:#656d76}
+body.light .tabs{background:#f6f8fa}
 body.light .tab{background:#fff;border-color:#d0d7de;color:#656d76}
 body.light .tab:hover{border-color:#0969da;color:#0969da}
 body.light .tab.active{background:#0969da11;border-color:#0969da;color:#0969da}
@@ -39,7 +40,7 @@ body.light .plan-table th{background:#f6f8fa}
 body.light .plan-add-form{background:#f6f8fa;border-color:#d0d7de}
 input[type="date"]{color-scheme:dark}
 body.light input[type="date"]{color-scheme:light}
-.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;align-items:start}
+.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;align-items:start;min-height:160px}
 .toolbar{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#161b22;border:1px solid #30363d;border-radius:10px}
 .search-input{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;padding:7px 12px;border-radius:6px;font-size:.8rem;width:200px;transition:border-color .2s,width .3s}
 .search-input:focus{outline:none;border-color:#58a6ff;width:280px}
@@ -54,7 +55,7 @@ h1{font-size:1.8rem;font-weight:700;background:linear-gradient(135deg,#3fb950,#5
 .card.inprog .card-value{color:#58a6ff}
 .card.overdue .card-value{color:#f85149}
 .card.fails .card-value{color:#d29922}
-.qual-progress{margin-bottom:0}
+.qual-progress{margin-bottom:0;max-height:140px;overflow-y:auto}
 .qual-progress-item{display:flex;align-items:center;gap:12px;margin-bottom:8px}
 .qual-progress-label{font-size:.8rem;color:#8b949e;min-width:80px;font-weight:600}
 .progress-bar-bg{flex:1;height:8px;background:#21262d;border-radius:4px;overflow:hidden;max-width:300px}
@@ -63,7 +64,7 @@ h1{font-size:1.8rem;font-weight:700;background:linear-gradient(135deg,#3fb950,#5
 .progress-bar-fill.blue{background:#58a6ff}
 .progress-bar-fill.red{background:#f85149}
 .qual-progress-count{font-size:.75rem;color:#8b949e}
-.tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:100;background:#0d1117;padding:12px 0}
 .tab{background:#21262d;border:1px solid #30363d;color:#8b949e;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.85rem;transition:all .2s}
 .tab:hover{border-color:#58a6ff;color:#58a6ff}
 .tab.active{background:#58a6ff22;border-color:#58a6ff;color:#58a6ff}
@@ -249,7 +250,7 @@ tr.overdue-row td{background:#f8514911}
   <button class="btn" id="collapseAll" style="display:none">↕</button>
   <button class="btn" id="colSettingsBtn" title="Columns">⚙</button>
   <button class="btn btn-export" id="exportBtn" title="Export Excel">💾</button>
-  <button class="btn" id="backupBtn" title="Download backup (HTML with data)" style="border-color:#3fb950;color:#3fb950">📥</button>
+  <button class="btn" id="syncBtn" style="border-color:#3fb950;color:#3fb950" title="Download backup (HTML with data)" style="border-color:#3fb950;color:#3fb950">📥</button>
   <button class="btn" id="printBtn" title="Print">🖨</button>
 </div>
 <div class="add-form" id="addForm">
@@ -708,7 +709,7 @@ document.getElementById("togglePlan").addEventListener("click",function(){docume
 document.getElementById("toggleGroup").addEventListener("click",function(){groupByQualLot=!groupByQualLot;this.classList.toggle("active",groupByQualLot);document.getElementById("collapseAll").style.display=groupByQualLot?"inline-block":"none";render()});
 document.getElementById("collapseAll").addEventListener("click",function(){var allC=Object.keys(collapsedGroups).length>0&&Object.keys(collapsedGroups).every(function(k){return collapsedGroups[k]});if(allC){collapsedGroups={}}else{items.forEach(function(i){collapsedGroups[i.qual+" | "+i.lot]=true})};render()});
 document.getElementById("exportBtn").addEventListener("click",exportXLSX);
-document.getElementById("backupBtn").addEventListener("click",downloadBackup);
+document.getElementById("syncBtn").addEventListener("click",function(){syncToCloud();this.textContent="Syncing...";var b=this;setTimeout(function(){b.textContent="\u2601"},2000)});
 document.getElementById("printBtn").addEventListener("click",printView);
 document.getElementById("qualFilter").addEventListener("change",function(){currentQualFilter=this.value;render()});
 document.getElementById("searchBar").addEventListener("input",function(){searchTerm=this.value.trim();render()});
@@ -856,10 +857,7 @@ document.addEventListener("keydown",function(e){
 document.getElementById("shortcutBtn").addEventListener("mouseenter",function(){document.getElementById("shortcutHelp").classList.add("open")});
 document.getElementById("shortcutBtn").addEventListener("mouseleave",function(){document.getElementById("shortcutHelp").classList.remove("open")});
 
-render();
-</script>
 
-<script>
 // === Google Sheets Sync ===
 var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJ8wrYPiJYVxD15I_XX0b_tMHUUe4iMIA3eAdgLv5Q9lGqyOc1TKYPx78VvYKAZ900SA/exec";
 var syncInProgress = false;
@@ -882,25 +880,25 @@ function loadFromCloud() {
         var cloudIds = d.items.map(function(i) { return i.id; });
         var localOnly = items.filter(function(i) { return cloudIds.indexOf(i.id) === -1; });
         items = d.items.concat(localOnly);
-        saveItemsLocal();
+        localStorage.setItem(SK, JSON.stringify(items));
       }
       if (d.fa && d.fa.length > 0) {
         var cloudFIds = d.fa.map(function(f) { return f.id; });
         var localOnlyF = faEntries.filter(function(f) { return cloudFIds.indexOf(f.id) === -1; });
         faEntries = d.fa.concat(localOnlyF);
-        saveFALocal();
+        localStorage.setItem(FK, JSON.stringify(faEntries));
       }
       if (d.plans && Object.keys(d.plans).length > 0) {
         plans = d.plans;
-        savePlansLocal();
+        localStorage.setItem(PK, JSON.stringify(plans));
       }
       if (d.products && d.products.length > 0) {
         products = d.products;
-        saveProductsLocal();
+        localStorage.setItem(PROD_K, JSON.stringify(products));
       }
       if (d.columns && d.columns.length > 0) {
         columns = d.columns;
-        saveColumnsLocal();
+        localStorage.setItem(COL_K, JSON.stringify(columns));
       }
       renderHeader(); render();
       console.log("Loaded from cloud");
@@ -908,22 +906,17 @@ function loadFromCloud() {
     .catch(function(e) { console.warn("Cloud load failed, using local:", e); });
 }
 
-// Rename originals to Local versions
-var saveItemsLocal = saveItems;
-var saveFALocal = saveFA;
-var savePlansLocal = savePlans;
-var saveProductsLocal = saveProducts;
-var saveColumnsLocal = saveColumns;
-
-// Override to also sync to cloud
-saveItems = function() { saveItemsLocal(); syncToCloud(); };
-saveFA = function() { saveFALocal(); syncToCloud(); };
-savePlans = function() { savePlansLocal(); syncToCloud(); };
-saveProducts = function() { saveProductsLocal(); syncToCloud(); };
-saveColumns = function() { saveColumnsLocal(); syncToCloud(); };
+// Wrap save functions to also sync
+var _origSaveItems = saveItems;
+saveItems = function() { _origSaveItems(); syncToCloud(); };
+var _origSaveFA = saveFA;
+saveFA = function() { _origSaveFA(); syncToCloud(); };
+var _origSavePlans = savePlans;
+savePlans = function() { _origSavePlans(); syncToCloud(); };
+var _origSaveProducts = saveProducts;
+saveProducts = function() { _origSaveProducts(); syncToCloud(); };
+var _origSaveColumns = saveColumns;
+saveColumns = function() { _origSaveColumns(); syncToCloud(); };
 
 // Load from cloud on startup
-loadFromCloud();
-
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}</script>
-</body></html>
+loadFromClo
