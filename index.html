@@ -1356,6 +1356,15 @@ saveColumns = function() { _origSaveColumns(); syncToCloud(); };
 // Load from cloud on startup
 loadFromCloud();
 
+// Auto sync: push every 10s if changes, pull every 10s
+var _lastSyncHash = "";
+setInterval(function(){
+  var hash = JSON.stringify(items) + JSON.stringify(faEntries);
+  if(hash !== _lastSyncHash){ syncToCloud(); _lastSyncHash = hash; }
+}, 10000);
+setInterval(function(){ loadFromCloud(); }, 10000);
+
+
 render();
 </script>
 
