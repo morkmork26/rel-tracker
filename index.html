@@ -272,7 +272,6 @@ body.light .mob-header{background:rgba(246,248,250,0.9);border-bottom-color:rgba
 .mob-search-icon{position:absolute;left:28px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5;pointer-events:none}
 .mob-search input{width:100%;padding:10px 14px 10px 36px;background:#161b22;border:1px solid #30363d;border-radius:10px;color:#c9d1d9;font-size:14px;outline:none;transition:border-color .2s}
 .mob-search input:focus{border-color:var(--mob-accent)}
-.mob-search-icon{position:absolute;left:28px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5;pointer-events:none}
 body.light .mob-search input{background:#fff;border-color:#d0d7de;color:#1f2328}
 .mob-stats{display:flex;gap:8px;padding:4px 16px 8px;overflow-x:auto;flex-shrink:0;-webkit-overflow-scrolling:touch}
 .mob-stats::-webkit-scrollbar{display:none}
@@ -424,7 +423,7 @@ body.light .mob-modal-cancel{background:#f6f8fa;color:#656d76}
   <button class="btn" id="collapseAll" style="display:none">↕</button>
   <button class="btn" id="colSettingsBtn" title="Columns">⚙</button>
   <button class="btn btn-export" id="exportBtn" title="Export Excel">💾</button>
-  <button class="btn" id="syncBtn" style="border-color:#3fb950;color:#3fb950" title="Sync to Google Sheets">&#9729;</button> <button class="btn" id="backupBtn" title="Download backup (HTML with data)" style="border-color:#3fb950;color:#3fb950">📥</button>
+  <button class="btn" id="backupBtn" title="Download backup (HTML with data)" style="border-color:#3fb950;color:#3fb950">📥</button>
   <button class="btn" id="printBtn" title="Print">🖨</button>
 </div>
 <div class="add-form" id="addForm">
@@ -1307,17 +1306,18 @@ function loadFromCloud() {
           if (item.targetDate) item.targetDate = fixDate(item.targetDate);
           if (item.actualDate) item.actualDate = fixDate(item.actualDate);
         });
-        var cloudIds = d.items.map(function(i) { return i.id; });
-        var localOnly = items.filter(function(i) { return cloudIds.indexOf(i.id) === -1; });
-        items = d.items.concat(localOnly);
+        var now = Date.now();
+        var veryNew = items.filter(function(i) { return (now - i.id) < 30000 && d.items.every(function(ci){return ci.id !== i.id}); });
+        items = d.items.concat(veryNew);
         localStorage.setItem(SK, JSON.stringify(items));
+        localStorage.setItem(SK+"_ver", String(EMBEDDED_VERSION));
         changed = true;
       }
       if (d.fa && d.fa.length > 0) {
         d.fa.forEach(function(f) { if (f.date) f.date = fixDate(f.date); });
-        var cloudFIds = d.fa.map(function(f) { return f.id; });
-        var localOnlyF = faEntries.filter(function(f) { return cloudFIds.indexOf(f.id) === -1; });
-        faEntries = d.fa.concat(localOnlyF);
+        var nowF = Date.now();
+        var veryNewF = faEntries.filter(function(f) { return (nowF - f.id) < 30000 && d.fa.every(function(cf){return cf.id !== f.id}); });
+        faEntries = d.fa.concat(veryNewF);
         localStorage.setItem(FK, JSON.stringify(faEntries));
         changed = true;
       }
@@ -1326,7 +1326,6 @@ function loadFromCloud() {
         localStorage.setItem(PLAN_KEY, JSON.stringify(plans));
         changed = true;
       }
-      // Only use cloud products/columns if valid strings
       if (d.products && d.products.length > 0 && typeof d.products[0] === "string") {
         products = d.products;
         localStorage.setItem(PK, JSON.stringify(products));
@@ -1336,7 +1335,7 @@ function loadFromCloud() {
         localStorage.setItem(CK, JSON.stringify(columns));
       }
       if (changed) { renderHeader(); render(); }
-      console.log("Loaded from cloud");
+      console.log("Loaded from cloud:", items.length, "items,", faEntries.length, "FAs");
     })
     .catch(function(e) { console.warn("Cloud load failed, using local:", e); });
 }
@@ -1353,8 +1352,6 @@ saveProducts = function() { _origSaveProducts(); syncToCloud(); };
 var _origSaveColumns = saveColumns;
 saveColumns = function() { _origSaveColumns(); syncToCloud(); };
 
-// Sync button click
-document.getElementById("syncBtn").addEventListener("click", function() { syncToCloud(); });
 
 // Load from cloud on startup
 loadFromCloud();
@@ -1392,7 +1389,7 @@ render();
   <nav class="mob-nav">
     <button class="mob-nav-btn active" data-view="all"><span class="ni">&#9776;</span>All<span class="mob-nav-badge" id="mobBadge"></span></button>
     <button class="mob-nav-btn" data-view="sort"><span class="ni">&#8645;</span>Sort</button>
-    <button class="mob-nav-btn" data-view="sync"><span class="ni">&#9729;</span>Sync</button>
+    
   </nav>
 </div>
 <div class="mob-sheet-overlay" id="mobSheetOverlay"></div>

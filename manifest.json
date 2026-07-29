@@ -1,6 +1,6 @@
 {
   "name": "ReliaTrack",
-  "short_name": "ReliaTrack",
+  "short_name": "Rel Tracker",
   "description": "Track reliability qualification status across NPI products",
   "start_url": "/rel-tracker/",
   "display": "standalone",
