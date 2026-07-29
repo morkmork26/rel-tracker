@@ -1284,60 +1284,89 @@ function fixDate(d) {
   return String(d);
 }
 
+var lastPushTime = 0;
+
+function mergeById(local, cloud) {
+  var map = {};
+  cloud.forEach(function(c) { map[c.id] = c; });
+  local.forEach(function(l) { map[l.id] = l; });
+  var result = [];
+  for (var k in map) result.push(map[k]);
+  return result;
+}
+
 function syncToCloud() {
   if (syncInProgress) return;
   syncInProgress = true;
   var btn = document.getElementById("syncBtn");
   if (btn) btn.textContent = "...";
-  var payload = {action: "save", app: "rel", data: {items: items, fa: faEntries, plans: plans, products: products, columns: columns}};
-  fetch(SCRIPT_URL, {method: "POST", body: JSON.stringify(payload), headers: {"Content-Type": "text/plain"}})
+  fetch(SCRIPT_URL + "?action=load&app=rel")
     .then(function(r) { return r.json(); })
-    .then(function(d) { syncInProgress = false; if (btn) btn.textContent = "☁"; console.log("Synced to cloud:", d.timestamp); })
+    .then(function(cloud) {
+      var cloudItems = (cloud.items && Array.isArray(cloud.items)) ? cloud.items : [];
+      var cloudFA = (cloud.fa && Array.isArray(cloud.fa)) ? cloud.fa : [];
+      cloudItems.forEach(function(ci) { if (ci.targetDate) ci.targetDate = fixDate(ci.targetDate); if (ci.actualDate) ci.actualDate = fixDate(ci.actualDate); });
+      cloudFA.forEach(function(cf) { if (cf.date) cf.date = fixDate(cf.date); });
+      items = mergeById(items, cloudItems);
+      faEntries = mergeById(faEntries, cloudFA);
+      if (cloud.plans && Object.keys(cloud.plans).length > 0) { for (var k in cloud.plans) { if (!plans[k]) plans[k] = cloud.plans[k]; } }
+      if (cloud.products && Array.isArray(cloud.products)) { cloud.products.forEach(function(p) { if (products.indexOf(p) === -1) products.push(p); }); }
+      if (cloud.columns && Array.isArray(cloud.columns)) { columns = cloud.columns; }
+      localStorage.setItem(SK, JSON.stringify(items));
+      localStorage.setItem(FK, JSON.stringify(faEntries));
+      localStorage.setItem(PLAN_KEY, JSON.stringify(plans));
+      localStorage.setItem(PK, JSON.stringify(products));
+      localStorage.setItem(CK, JSON.stringify(columns));
+      var payload = {action: "save", app: "rel", data: {items: items, fa: faEntries, plans: plans, products: products, columns: columns}};
+      return fetch(SCRIPT_URL, {method: "POST", body: JSON.stringify(payload), headers: {"Content-Type": "text/plain"}});
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      syncInProgress = false;
+      lastPushTime = Date.now();
+      _lastSyncHash = JSON.stringify(items) + JSON.stringify(faEntries);
+      if (btn) btn.textContent = "☁";
+      render();
+      console.log("Synced to cloud:", items.length, "items,", faEntries.length, "FAs");
+    })
     .catch(function(e) { syncInProgress = false; if (btn) btn.textContent = "☁"; console.warn("Sync failed:", e); });
 }
 
 function loadFromCloud() {
+  if (syncInProgress || Date.now() - lastPushTime < 5000) return;
   fetch(SCRIPT_URL + "?action=load&app=rel")
     .then(function(r) { return r.json(); })
     .then(function(d) {
       var changed = false;
-      if (d.items && d.items.length > 0) {
-        d.items.forEach(function(item) {
-          if (item.targetDate) item.targetDate = fixDate(item.targetDate);
-          if (item.actualDate) item.actualDate = fixDate(item.actualDate);
-        });
-        var now = Date.now();
-        var veryNew = items.filter(function(i) { return (now - i.id) < 30000 && d.items.every(function(ci){return ci.id !== i.id}); });
-        items = d.items.concat(veryNew);
+      if (d.items && Array.isArray(d.items)) {
+        d.items.forEach(function(item) { if (item.targetDate) item.targetDate = fixDate(item.targetDate); if (item.actualDate) item.actualDate = fixDate(item.actualDate); });
+        items = mergeById(items, d.items);
         localStorage.setItem(SK, JSON.stringify(items));
-        localStorage.setItem(SK+"_ver", String(EMBEDDED_VERSION));
         changed = true;
       }
-      if (d.fa && d.fa.length > 0) {
+      if (d.fa && Array.isArray(d.fa)) {
         d.fa.forEach(function(f) { if (f.date) f.date = fixDate(f.date); });
-        var nowF = Date.now();
-        var veryNewF = faEntries.filter(function(f) { return (nowF - f.id) < 30000 && d.fa.every(function(cf){return cf.id !== f.id}); });
-        faEntries = d.fa.concat(veryNewF);
+        faEntries = mergeById(faEntries, d.fa);
         localStorage.setItem(FK, JSON.stringify(faEntries));
         changed = true;
       }
       if (d.plans && Object.keys(d.plans).length > 0) {
-        plans = d.plans;
+        for (var k in d.plans) { if (!plans[k]) plans[k] = d.plans[k]; }
         localStorage.setItem(PLAN_KEY, JSON.stringify(plans));
         changed = true;
       }
       if (d.products && d.products.length > 0 && typeof d.products[0] === "string") {
-        products = d.products;
+        d.products.forEach(function(p) { if (products.indexOf(p) === -1) products.push(p); });
         localStorage.setItem(PK, JSON.stringify(products));
       }
       if (d.columns && d.columns.length > 0 && typeof d.columns[0] === "object" && d.columns[0].key) {
         columns = d.columns;
         localStorage.setItem(CK, JSON.stringify(columns));
       }
-      if (changed) { renderHeader(); render(); }
-      console.log("Loaded from cloud:", items.length, "items,", faEntries.length, "FAs");
+      if (changed) { _lastSyncHash = JSON.stringify(items) + JSON.stringify(faEntries); renderHeader(); render(); }
+      console.log("Pulled from cloud:", items.length, "items,", faEntries.length, "FAs");
     })
-    .catch(function(e) { console.warn("Cloud load failed, using local:", e); });
+    .catch(function(e) { console.warn("Cloud pull failed:", e); });
 }
 
 // Wrap save functions
