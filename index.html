@@ -1286,50 +1286,22 @@ function fixDate(d) {
 
 var lastPushTime = 0;
 
-function mergeById(local, cloud) {
-  var map = {};
-  cloud.forEach(function(c) { map[c.id] = c; });
-  local.forEach(function(l) { map[l.id] = l; });
-  var result = [];
-  for (var k in map) result.push(map[k]);
-  return result;
-}
-
 function syncToCloud() {
   if (syncInProgress) return;
   syncInProgress = true;
   var btn = document.getElementById("syncBtn");
   if (btn) btn.textContent = "...";
-  fetch(SCRIPT_URL + "?action=load&app=rel&t=" + Date.now())
-    .then(function(r) { return r.json(); })
-    .then(function(cloud) {
-      var cloudItems = (cloud.items && Array.isArray(cloud.items)) ? cloud.items : [];
-      var cloudFA = (cloud.fa && Array.isArray(cloud.fa)) ? cloud.fa : [];
-      cloudItems.forEach(function(ci) { if (ci.targetDate) ci.targetDate = fixDate(ci.targetDate); if (ci.actualDate) ci.actualDate = fixDate(ci.actualDate); });
-      cloudFA.forEach(function(cf) { if (cf.date) cf.date = fixDate(cf.date); });
-      items = mergeById(items, cloudItems);
-      faEntries = mergeById(faEntries, cloudFA);
-      if (cloud.plans && Object.keys(cloud.plans).length > 0) { for (var k in cloud.plans) { if (!plans[k]) plans[k] = cloud.plans[k]; } }
-      if (cloud.products && Array.isArray(cloud.products)) { cloud.products.forEach(function(p) { if (products.indexOf(p) === -1) products.push(p); }); }
-      if (cloud.columns && Array.isArray(cloud.columns)) { columns = cloud.columns; }
-      localStorage.setItem(SK, JSON.stringify(items));
-      localStorage.setItem(FK, JSON.stringify(faEntries));
-      localStorage.setItem(PLAN_KEY, JSON.stringify(plans));
-      localStorage.setItem(PK, JSON.stringify(products));
-      localStorage.setItem(CK, JSON.stringify(columns));
-      var payload = {action: "save", app: "rel", data: {items: items, fa: faEntries, plans: plans, products: products, columns: columns}};
-      return fetch(SCRIPT_URL, {method: "POST", body: JSON.stringify(payload), headers: {"Content-Type": "text/plain"}});
-    })
+  var payload = {action: "save", app: "rel", data: {items: items, fa: faEntries, plans: plans, products: products, columns: columns}};
+  fetch(SCRIPT_URL, {method: "POST", body: JSON.stringify(payload), headers: {"Content-Type": "text/plain"}})
     .then(function(r) { return r.json(); })
     .then(function(d) {
       syncInProgress = false;
       lastPushTime = Date.now();
       _lastSyncHash = JSON.stringify(items) + JSON.stringify(faEntries);
       if (btn) btn.textContent = "☁";
-      render();
-      console.log("Synced to cloud:", items.length, "items,", faEntries.length, "FAs");
+      console.log("Pushed to cloud:", items.length, "items,", faEntries.length, "FAs");
     })
-    .catch(function(e) { syncInProgress = false; if (btn) btn.textContent = "☁"; console.warn("Sync failed:", e); });
+    .catch(function(e) { syncInProgress = false; if (btn) btn.textContent = "☁"; console.warn("Push failed:", e); });
 }
 
 function loadFromCloud() {
@@ -1340,26 +1312,26 @@ function loadFromCloud() {
       var changed = false;
       if (d.items && Array.isArray(d.items)) {
         d.items.forEach(function(item) { if (item.targetDate) item.targetDate = fixDate(item.targetDate); if (item.actualDate) item.actualDate = fixDate(item.actualDate); });
-        items = mergeById(items, d.items);
+        items = d.items;
         localStorage.setItem(SK, JSON.stringify(items));
         changed = true;
       }
       if (d.fa && Array.isArray(d.fa)) {
         d.fa.forEach(function(f) { if (f.date) f.date = fixDate(f.date); });
-        faEntries = mergeById(faEntries, d.fa);
+        faEntries = d.fa;
         localStorage.setItem(FK, JSON.stringify(faEntries));
         changed = true;
       }
       if (d.plans && Object.keys(d.plans).length > 0) {
-        for (var k in d.plans) { if (!plans[k]) plans[k] = d.plans[k]; }
+        plans = d.plans;
         localStorage.setItem(PLAN_KEY, JSON.stringify(plans));
         changed = true;
       }
-      if (d.products && d.products.length > 0 && typeof d.products[0] === "string") {
-        d.products.forEach(function(p) { if (products.indexOf(p) === -1) products.push(p); });
+      if (d.products && Array.isArray(d.products) && d.products.length > 0) {
+        products = d.products;
         localStorage.setItem(PK, JSON.stringify(products));
       }
-      if (d.columns && d.columns.length > 0 && typeof d.columns[0] === "object" && d.columns[0].key) {
+      if (d.columns && Array.isArray(d.columns) && d.columns.length > 0) {
         columns = d.columns;
         localStorage.setItem(CK, JSON.stringify(columns));
       }

@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rel-tracker-v14';
+var CACHE_NAME = 'rel-tracker-v15';
 var urlsToCache = [
   '/rel-tracker/',
   '/rel-tracker/index.html',
