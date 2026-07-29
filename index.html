@@ -243,7 +243,7 @@ body.light .mob-drill-card{background:#fff;border-color:#d0d7de}
 /* ===== MOBILE UI ===== */
 @media(max-width:768px){
   .table-wrap,.toolbar,.tabs,.add-form,.top-grid,.dashboard,.plan-section,.bulk-bar,.shortcut-help,#shortcutBtn{display:none!important}
-  body{padding:0;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+  body{padding:0;padding-top:var(--mob-header,56px);padding-bottom:calc(var(--mob-nav) + 80px);overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
   h1,.subtitle{display:none!important}
   div[style*="justify-content:space-between"]{display:none!important}
   .mob-app{display:flex!important}
