@@ -1300,7 +1300,7 @@ function syncToCloud() {
   syncInProgress = true;
   var btn = document.getElementById("syncBtn");
   if (btn) btn.textContent = "...";
-  fetch(SCRIPT_URL + "?action=load&app=rel")
+  fetch(SCRIPT_URL + "?action=load&app=rel&t=" + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(cloud) {
       var cloudItems = (cloud.items && Array.isArray(cloud.items)) ? cloud.items : [];
@@ -1334,7 +1334,7 @@ function syncToCloud() {
 
 function loadFromCloud() {
   if (syncInProgress || Date.now() - lastPushTime < 5000) return;
-  fetch(SCRIPT_URL + "?action=load&app=rel")
+  fetch(SCRIPT_URL + "?action=load&app=rel&t=" + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(d) {
       var changed = false;
